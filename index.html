@@ -532,9 +532,54 @@
             };
         }
 
-        function create7DayVolumeChart(klineData) {
+        function create24hVs7dChart(futuresData, klineData) {
+            // 计算 24h 成交额
+            const exchanges = Object.keys(futuresData);
+            const vol24h = exchanges.map(e => futuresData[e].reduce((sum, t) => sum + t.volume, 0) / 1e9);
+            
+            // 计算 7d 日均成交额（从 BTC+ETH+SOL 的 K 线数据估算整体）
+            const vol7dDaily = exchanges.map(e => {
+                let total7d = 0;
+                for (const symbol of ["BTC", "ETH", "SOL"]) {
+                    const data = klineData[symbol]?.[e] || [];
+                    total7d += data.reduce((sum, d) => sum + d.volume, 0);
+                }
+                // 主流币占比约 60%，反推总量
+                return total7d / 7 / 0.6 / 1e9;
+            });
+
+            return {
+                data: [
+                    {
+                        name: "24h 成交额",
+                        x: exchanges,
+                        y: vol24h,
+                        type: "bar",
+                        marker: { color: "#7B68EE" },
+                    },
+                    {
+                        name: "7d 日均成交额",
+                        x: exchanges,
+                        y: vol7dDaily,
+                        type: "bar",
+                        marker: { color: "#00D4AA" },
+                    }
+                ],
+                layout: {
+                    title: { text: "24h vs 7d 日均成交额对比（合约，单位：B USDT）", font: { color: "#fff" } },
+                    barmode: "group",
+                    height: 400,
+                    paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(255,255,255,0.02)",
+                    font: { color: "#888" },
+                    xaxis: { gridcolor: "rgba(255,255,255,0.05)" },
+                    yaxis: { gridcolor: "rgba(255,255,255,0.05)", title: "成交额 (B)" },
+                    legend: { font: { color: "#ccc" }, orientation: "h", y: 1.1 },
+                },
+            };
+        }
+
+        function create7DayTrendChart(klineData) {
             const traces = [];
-            const colors = { "BTC": "#F7931A", "ETH": "#627EEA", "SOL": "#00FFA3" };
 
             for (const [symbol, exchanges] of Object.entries(klineData)) {
                 for (const [exchange, data] of Object.entries(exchanges)) {
@@ -555,7 +600,7 @@
             return {
                 data: traces,
                 layout: {
-                    title: { text: "7 天成交额趋势（合约，单位：B USDT）", font: { color: "#fff" } },
+                    title: { text: "7 天成交额趋势（BTC/ETH/SOL 合约）", font: { color: "#fff" } },
                     height: 400,
                     paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(255,255,255,0.02)",
                     font: { color: "#888" },
@@ -655,11 +700,11 @@
             </div>
         `;
 
-        // 生成基础图表（去掉币种数量柱状图，顶部卡片已展示）
-        const charts = [
-            createTierChart(spotData, futuresData),
-            createVolumeChart(spotData, futuresData),
-        ];
+                // 生成基础图表（去掉币种数量柱状图，顶部卡片已展示）
+                const charts = [
+                    createTierChart(spotData, futuresData),
+                    createVolumeChart(spotData, futuresData),
+                ];
 
                 let chartsHtml = charts.map((_, i) => `<div class="chart-container"><div id="chart_${i}"></div></div>`).join("");
 
@@ -673,8 +718,12 @@
                     };
                 }
 
-                // 添加 7 天成交额图表
-                const klineChart = create7DayVolumeChart(klineData);
+                // 添加 24h vs 7d 对比图
+                const compareChart = create24hVs7dChart(futuresData, klineData);
+                chartsHtml += `<div class="chart-container"><div id="chart_compare"></div></div>`;
+                
+                // 添加 7 天趋势图
+                const trendChart = create7DayTrendChart(klineData);
                 chartsHtml += `<div class="chart-container"><div id="chart_7d"></div></div>`;
 
                 // 获取深度数据
@@ -696,7 +745,8 @@
                 charts.forEach((chart, i) => {
                     Plotly.newPlot(`chart_${i}`, chart.data, chart.layout, { responsive: true });
                 });
-                Plotly.newPlot("chart_7d", klineChart.data, klineChart.layout, { responsive: true });
+                Plotly.newPlot("chart_compare", compareChart.data, compareChart.layout, { responsive: true });
+                Plotly.newPlot("chart_7d", trendChart.data, trendChart.layout, { responsive: true });
 
                 document.getElementById("timestamp").textContent = `数据更新时间: ${new Date().toLocaleString("zh-CN")}`;
 
