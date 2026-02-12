@@ -536,7 +536,7 @@
             // 计算 24h 成交额
             const exchanges = Object.keys(futuresData);
             const vol24h = exchanges.map(e => futuresData[e].reduce((sum, t) => sum + t.volume, 0) / 1e9);
-            
+
             // 计算 7d 日均成交额（从 BTC+ETH+SOL 的 K 线数据估算整体）
             const vol7dDaily = exchanges.map(e => {
                 let total7d = 0;
@@ -708,45 +708,12 @@
 
                 let chartsHtml = charts.map((_, i) => `<div class="chart-container"><div id="chart_${i}"></div></div>`).join("");
 
-                // 获取 7 天 K 线数据
-                const symbols = ["BTC", "ETH", "SOL"];
-                const klineData = {};
-                for (const symbol of symbols) {
-                    klineData[symbol] = {
-                        Binance: await fetch7DayKlines(symbol, "Binance"),
-                        OKX: await fetch7DayKlines(symbol, "OKX"),
-                    };
-                }
-
-                // 添加 24h vs 7d 对比图
-                const compareChart = create24hVs7dChart(futuresData, klineData);
-                chartsHtml += `<div class="chart-container"><div id="chart_compare"></div></div>`;
-                
-                // 添加 7 天趋势图
-                const trendChart = create7DayTrendChart(klineData);
-                chartsHtml += `<div class="chart-container"><div id="chart_7d"></div></div>`;
-
-                // 获取深度数据
-                const depthData = {};
-                for (const symbol of symbols) {
-                    depthData[symbol] = {
-                        Binance: await fetchDepth(symbol, "Binance"),
-                        OKX: await fetchDepth(symbol, "OKX"),
-                        Hyperliquid: await fetchDepth(symbol, "Hyperliquid"),
-                    };
-                }
-
-                // 添加深度表格
-                chartsHtml += createDepthTable(depthData);
-
                 document.getElementById("charts-container").innerHTML = chartsHtml;
 
                 // 渲染图表
                 charts.forEach((chart, i) => {
                     Plotly.newPlot(`chart_${i}`, chart.data, chart.layout, { responsive: true });
                 });
-                Plotly.newPlot("chart_compare", compareChart.data, compareChart.layout, { responsive: true });
-                Plotly.newPlot("chart_7d", trendChart.data, trendChart.layout, { responsive: true });
 
                 document.getElementById("timestamp").textContent = `数据更新时间: ${new Date().toLocaleString("zh-CN")}`;
 
