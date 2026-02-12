@@ -680,27 +680,10 @@
                 const spotData = { Binance: binanceSpot, OKX: okxSpot, BitMart: bitmartSpot, Hyperliquid: hlSpot };
                 const futuresData = { Binance: binanceFutures, OKX: okxSwap, BitMart: bitmartFutures, Hyperliquid: hlPerps };
 
-                // 更新统计卡片
-                document.getElementById("stats-container").innerHTML = `
-            <div class="stats-grid">
-                ${Object.entries(spotData).map(([name, tickers]) => `
-                    <div class="stat-card ${name.toLowerCase()}">
-                        <h3>${name} 现货</h3>
-                        <div class="value">${tickers.length}</div>
-                        <div class="sub">币种数量</div>
-                    </div>
-                `).join("")}
-                ${Object.entries(futuresData).map(([name, tickers]) => `
-                    <div class="stat-card ${name.toLowerCase()}">
-                        <h3>${name} 合约</h3>
-                        <div class="value">${tickers.length}</div>
-                        <div class="sub">币种数量</div>
-                    </div>
-                `).join("")}
-            </div>
-        `;
+                // 隐藏加载提示
+                document.getElementById("stats-container").innerHTML = "";
 
-                // 生成基础图表（去掉币种数量柱状图，顶部卡片已展示）
+                // 生成图表
                 const charts = [
                     createTierChart(spotData, futuresData),
                     createVolumeChart(spotData, futuresData),
